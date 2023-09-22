@@ -5,7 +5,7 @@
 
 .data
 walk: .asciiz "walk button pressed"
-
+car: .asciiz "car button presses"
 
 
 .ktext 0x80000180
@@ -24,26 +24,23 @@ mtc0 $t0, $12
 
 loop:
 
-	la      $t0, 0xFFFF0010  	#trafic light for crossing humans
-add   $t2,$zero, 0x01
-sb      $t2, 0x0($t0)
-la      $t0, 0xFFFF0010  	#trafic light for crossing humans
-add   $t2,$zero, 0x02
-sb      $t2, 0x0($t0)
 
 
-la      $t0, 0xFFFF0011   	#trafic light for cars
+
+la      $t0, 0xFFFF0011   	#trafic light for cars is green by default
 add   $t1,$zero, 0x04
 sb      $t1, 0x0($t0)
 
-la      $t0, 0xFFFF0011   	#trafic light for cars
-add   $t1,$zero, 0x01
-sb      $t1, 0x0($t0)
+#blinking human light test
+la      $t0, 0xFFFF0010  	#trafic light for crossing humans
+add   $t2,$zero, 0x01
+sb      $t2, 0x0($t0)
 
-la      $t0, 0xFFFF0011   	#trafic light for cars
-add   $t1,$zero, 0x02
-sb      $t1, 0x0($t0)
-	b loop
+la      $t0, 0xFFFF0010  	#trafic light for crossing humans
+add   $t2,$zero, 0x00
+sb      $t2, 0x0($t0)
+
+b loop
 	
 	li $v0, 10
 	syscall
@@ -55,18 +52,42 @@ int_routine:
 	sw $a0, 4($sp)
 	sw $v0, 0($sp)
 	
+	addi $t0, $zero, 1
+	lb $s1, BUTTONADDR
+	bne $s1, $t0, button1
+		la      $t0, 0xFFFF0010  	#trafic light for crossing humans
+		add   $t2,$zero, 0x02
+		sb      $t2, 0x0($t0)
+
+		la      $t0, 0xFFFF0011   	#trafic light for cars
+		add   $t1,$zero, 0x01
+		sb      $t1, 0x0($t0)
 	
+		la $a0, walk #if button interrupt print text and button number
+		li $v0, 4
+		syscall
+		lb $a0, BUTTONADDR
+		li $v0, 1
+		syscall
+button1:
+
+	addi $t1, $zero, 2
+	lb $s2, BUTTONADDR
+	bne $s2, $t1, button2
+		la $a0, car #if button interrupt print text and button number
+		li $v0, 4
+		syscall
+		lb $a0, BUTTONADDR
+		li $v0, 1
+		syscall
+button2:
+
 	mfc0 $k1, $13 #extract EXCCODE field from Cause register
 	andi $k0, $k1, EXCHMASK #extract EXCCODE (bits 2-6)
 	bne $k0, $zero, restore #check EXCCODE (if nonzero leave)
 	andi $k0, $k1, EXT_INTBUTTON #extract bit 11 (button) from Cause register
 	beq $k0, $zero, restore #if no button interrupt leave
-	la $a0, walk #if button interrupt print text and button number
-	li $v0, 4
-	syscall
-	lb $a0, BUTTONADDR
-	li $v0, 1
-	syscall
+
 
 restore: #restore registers before leaving
 	lw $at, 8($sp)
