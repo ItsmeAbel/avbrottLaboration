@@ -6,6 +6,7 @@
 .data
 walk: .asciiz "walk button pressed"
 car: .asciiz "car button presses"
+ms_delay: .word 10 #1000ms which equals 1s
 
 
 .ktext 0x80000180
@@ -22,6 +23,7 @@ ori $t0, $t0, EXT_INTBUTTON
 ori $t0, $t0, 1
 mtc0 $t0, $12
 
+lw $s3, ms_delay
 loop:
 
 
@@ -31,14 +33,6 @@ la      $t0, 0xFFFF0011   	#trafic light for cars is green by default
 add   $t1,$zero, 0x04
 sb      $t1, 0x0($t0)
 
-#blinking human light test
-la      $t0, 0xFFFF0010  	#trafic light for crossing humans
-add   $t2,$zero, 0x01
-sb      $t2, 0x0($t0)
-
-la      $t0, 0xFFFF0010  	#trafic light for crossing humans
-add   $t2,$zero, 0x00
-sb      $t2, 0x0($t0)
 
 b loop
 	
@@ -69,6 +63,8 @@ int_routine:
 		lb $a0, BUTTONADDR
 		li $v0, 1
 		syscall
+		
+		
 button1:
 
 	addi $t1, $zero, 2
